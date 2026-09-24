@@ -126,7 +126,7 @@ dart run tool/sync_smoke.dart
 | [ACCESSIBILITY](docs/ACCESSIBILITY.md) | semantics, 48 dp targets, 2.0× text scaling |
 | [RELEASE](docs/RELEASE.md) | universal APK, AAB, ABI verification, signing |
 | [AI_WORKFLOW](docs/AI_WORKFLOW.md) | AI-assisted development disclosure |
-| [INTERVIEW_GUIDE](docs/INTERVIEW_GUIDE.md) | 44 questions to defend this repo |
+| [INTERVIEW_GUIDE](docs/INTERVIEW_GUIDE.md) | 50 questions to defend this repo |
 | [CV_EVIDENCE](docs/CV_EVIDENCE.md) | verified claims for your CV |
 
 ## Project stats
