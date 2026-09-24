@@ -14,6 +14,7 @@ class EmptyView extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.add,
   });
 
   /// Icon hinting at the missing content.
@@ -30,6 +31,9 @@ class EmptyView extends StatelessWidget {
 
   /// Optional call-to-action handler.
   final VoidCallback? onAction;
+
+  /// Icon inside the call-to-action button.
+  final IconData actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +74,7 @@ class EmptyView extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.tonalIcon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add),
+                icon: Icon(actionIcon),
                 label: Text(actionLabel!),
               ),
             ],
