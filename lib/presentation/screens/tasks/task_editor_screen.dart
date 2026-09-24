@@ -59,21 +59,37 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   /// Whether an edit-mode task is still being loaded from the database.
   bool _loadingTask = false;
 
+  /// Whether an edit-mode task id resolved to nothing (deep link to a
+  /// deleted task).
+  bool _notFound = false;
+
   @override
   void initState() {
     super.initState();
+    final task = widget.initialTask;
+    if (task != null) {
+      _titleController = TextEditingController(text: task.title);
+      _notesController = TextEditingController(text: task.notes ?? '');
+    } else {
+      _titleController = TextEditingController();
+      _notesController = TextEditingController();
+    }
+    // Priming writes provider state, and Riverpod forbids provider writes
+    // while the widget tree is building (initState included) — deferring to
+    // just after the first frame keeps the editor reachable at all.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prime());
+  }
+
+  /// Primes the editor controller for whichever mode the screen is in.
+  void _prime() {
+    if (!mounted) return;
     final editor = ref.read(taskEditorProvider.notifier);
     final task = widget.initialTask;
     if (task != null) {
       editor.startEdit(task);
-      _primed = true;
-      _titleController = TextEditingController(text: task.title);
-      _notesController = TextEditingController(text: task.notes ?? '');
+      setState(() => _primed = true);
     } else if (widget.taskId != null) {
-      _loadingTask = true;
       unawaited(_loadTask());
-      _titleController = TextEditingController();
-      _notesController = TextEditingController();
     } else {
       var preset = widget.projectId ?? '';
       if (preset.isEmpty) {
@@ -83,9 +99,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         }
       }
       editor.startCreate(projectId: preset);
-      _primed = true;
-      _titleController = TextEditingController();
-      _notesController = TextEditingController();
+      setState(() => _primed = true);
     }
   }
 
@@ -97,6 +111,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   }
 
   Future<void> _loadTask() async {
+    setState(() => _loadingTask = true);
     final task = await ref.read(taskByIdProvider(widget.taskId!).future);
     if (!mounted) return;
     setState(() => _loadingTask = false);
@@ -104,7 +119,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       ref.read(taskEditorProvider.notifier).startEdit(task);
       _titleController.text = task.title;
       _notesController.text = task.notes ?? '';
-      _primed = true;
+      setState(() => _primed = true);
+    } else {
+      setState(() => _notFound = true);
     }
   }
 
@@ -192,7 +209,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       ],
     );
 
-    if (_loadingTask) {
+    if (_loadingTask || (!_primed && !_notFound)) {
+      // Still priming (deferred out of the build phase) or resolving an
+      // edit-mode task id — never flash the previous editor state.
       return Scaffold(
         appBar: appBar,
         body: Center(
@@ -204,7 +223,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       );
     }
 
-    if (widget.taskId != null && !_primed) {
+    if (_notFound) {
       return Scaffold(
         appBar: appBar,
         body: EmptyView(

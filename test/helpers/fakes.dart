@@ -6,8 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:offlineboard/core/errors/app_exception.dart';
 import 'package:offlineboard/data/db/app_database.dart';
 import 'package:offlineboard/domain/entities/mutation_record.dart';
+import 'package:offlineboard/domain/entities/project.dart';
+import 'package:offlineboard/domain/entities/sync_enums.dart';
 import 'package:offlineboard/domain/entities/task.dart';
 import 'package:offlineboard/domain/entities/task_filter.dart';
+import 'package:offlineboard/domain/repositories/project_repository.dart';
 import 'package:offlineboard/domain/repositories/task_repository.dart';
 import 'package:offlineboard/domain/sync/sync_engine.dart';
 import 'package:offlineboard/presentation/providers/connectivity_provider.dart';
@@ -179,6 +182,194 @@ class RecordingTaskRepository implements TaskRepository {
 
   @override
   Future<void> deleteTask(String id) async => throw UnimplementedError();
+}
+
+/// In-memory [TaskRepository] for widget tests — no drift, no platform
+/// channels, no real HTTP.
+///
+/// `watchTasks` replays the current list to every new listener (like a
+/// drift watch query) and re-emits on [emit]. The filter's SQL dimensions
+/// are the real repository's job and are covered by the DAO tests — this
+/// fake only honors deletion.
+class FakeTaskRepository implements TaskRepository {
+  final Map<String, Task> _tasks = {};
+
+  /// Tasks passed to [createTask], in order.
+  final List<Task> createdTasks = [];
+
+  /// Tasks passed to [updateTask], in order.
+  final List<Task> updatedTasks = [];
+
+  /// `(id, completed)` pairs passed to [setCompleted], in order.
+  final List<(String, bool)> completedCalls = [];
+
+  /// Ids passed to [deleteTask], in order.
+  final List<String> deletedIds = [];
+
+  late final StreamController<List<Task>> _list;
+
+  /// Creates the fake preloaded with [initial].
+  FakeTaskRepository([List<Task> initial = const []]) {
+    for (final task in initial) {
+      _tasks[task.id] = task;
+    }
+    _list = StreamController<List<Task>>.broadcast(onListen: _replay);
+  }
+
+  /// The current non-deleted tasks.
+  List<Task> get visibleTasks =>
+      _tasks.values.where((task) => !task.isDeleted).toList();
+
+  /// Re-emits the current list to every watcher.
+  void emit() => _list.add(visibleTasks);
+
+  void _replay() {
+    scheduleMicrotask(() {
+      if (!_list.isClosed) _list.add(visibleTasks);
+    });
+  }
+
+  @override
+  Stream<List<Task>> watchTasks(TaskFilter filter) => _list.stream;
+
+  @override
+  Stream<Task?> watchTask(String id) =>
+      Stream.value(_tasks[id]).where((task) => task != null || true);
+
+  @override
+  Future<Task?> getTaskById(String id) async => _tasks[id];
+
+  @override
+  Future<Task> createTask({
+    required String projectId,
+    required String title,
+    String? notes,
+    TaskPriority priority = TaskPriority.medium,
+    int? dueDate,
+  }) async {
+    final task = Task(
+      id: 'created-${createdTasks.length}',
+      projectId: projectId,
+      title: title,
+      notes: notes,
+      priority: priority,
+      dueDate: dueDate,
+      createdAt: 0,
+      updatedAt: 0,
+      version: 1,
+      syncStatus: SyncStatus.pending,
+    );
+    createdTasks.add(task);
+    _tasks[task.id] = task;
+    return task;
+  }
+
+  @override
+  Future<Task> updateTask(Task task) async {
+    updatedTasks.add(task);
+    _tasks[task.id] = task;
+    return task;
+  }
+
+  @override
+  Future<Task> setCompleted(String id, bool completed) async {
+    completedCalls.add((id, completed));
+    final task = _tasks[id]!;
+    final updated = task.copyWith(
+      isCompleted: completed,
+      version: task.version + 1,
+      updatedAt: task.updatedAt + 1,
+    );
+    _tasks[id] = updated;
+    emit();
+    return updated;
+  }
+
+  @override
+  Future<void> deleteTask(String id) async {
+    deletedIds.add(id);
+    final task = _tasks[id];
+    if (task != null) {
+      _tasks[id] = task.copyWith(isDeleted: true);
+      emit();
+    }
+  }
+}
+
+/// In-memory [ProjectRepository] for widget tests.
+///
+/// Same replay semantics as [FakeTaskRepository].
+class FakeProjectRepository implements ProjectRepository {
+  final Map<String, Project> _projects = {};
+
+  /// Projects passed to [createProject], in order.
+  final List<Project> createdProjects = [];
+
+  late final StreamController<List<Project>> _list;
+
+  /// Creates the fake preloaded with [initial].
+  FakeProjectRepository([List<Project> initial = const []]) {
+    for (final project in initial) {
+      _projects[project.id] = project;
+    }
+    _list = StreamController<List<Project>>.broadcast(onListen: _replay);
+  }
+
+  /// The current non-deleted projects.
+  List<Project> get visibleProjects =>
+      _projects.values.where((project) => !project.isDeleted).toList();
+
+  /// Re-emits the current list to every watcher.
+  void emit() => _list.add(visibleProjects);
+
+  void _replay() {
+    scheduleMicrotask(() {
+      if (!_list.isClosed) _list.add(visibleProjects);
+    });
+  }
+
+  @override
+  Stream<List<Project>> watchProjects() => _list.stream;
+
+  @override
+  Stream<Project?> watchProject(String id) =>
+      Stream.value(_projects[id]).where((project) => project != null || true);
+
+  @override
+  Future<Project?> getProjectById(String id) async => _projects[id];
+
+  @override
+  Future<Project> createProject({
+    required String name,
+    required int colorValue,
+  }) async {
+    final project = Project(
+      id: 'created-${createdProjects.length}',
+      name: name,
+      colorValue: colorValue,
+      createdAt: 0,
+      updatedAt: 0,
+      version: 1,
+    );
+    createdProjects.add(project);
+    _projects[project.id] = project;
+    return project;
+  }
+
+  @override
+  Future<Project> updateProject(Project project) async {
+    _projects[project.id] = project;
+    return project;
+  }
+
+  @override
+  Future<void> deleteProject(String id) async {
+    final project = _projects[id];
+    if (project != null) {
+      _projects[id] = project.copyWith(isDeleted: true);
+      emit();
+    }
+  }
 }
 
 /// Builds a [ProviderContainer] over an in-memory drift database with a
