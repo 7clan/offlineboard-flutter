@@ -62,6 +62,9 @@ class TaskListItem extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Semantics(
+              // A semantic boundary, so the checkbox is its own focusable
+              // 48dp target instead of merging into the row's reading.
+              container: true,
               label: checkboxLabel,
               checked: task.isCompleted,
               button: true,
@@ -116,8 +119,11 @@ class TaskListItem extends ConsumerWidget {
                         PriorityChip(priority: task.priority),
                         if (projectName != null)
                           Semantics(
+                            container: true,
                             label: 'Project: $projectName',
-                            child: _ProjectLabel(label: projectName!),
+                            child: ExcludeSemantics(
+                              child: _ProjectLabel(label: projectName!),
+                            ),
                           ),
                       ],
                     ),

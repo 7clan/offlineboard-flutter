@@ -13,7 +13,8 @@ import '../../domain/entities/sync_enums.dart';
 /// * `failed`  — crossed-out cloud, error.
 ///
 /// The icon is informative, never interactive, so it does not need a
-/// 48 dp target — but it always carries a semantic label.
+/// 48 dp target — but it is its own semantics boundary and always carries
+/// exactly one label.
 class SyncStatusIcon extends StatelessWidget {
   /// Creates the status icon.
   const SyncStatusIcon({super.key, required this.status, this.size = 20});
@@ -29,17 +30,16 @@ class SyncStatusIcon extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final (:icon, :color, :label) = _resolve(scheme);
     return Semantics(
+      container: true,
       label: label,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: icon == null
-            ? CircularProgressIndicator(
-                strokeWidth: 2.4,
-                color: color,
-                semanticsLabel: label,
-              )
-            : Icon(icon, size: size, color: color),
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: icon == null
+              ? CircularProgressIndicator(strokeWidth: 2.4, color: color)
+              : Icon(icon, size: size, color: color),
+        ),
       ),
     );
   }
