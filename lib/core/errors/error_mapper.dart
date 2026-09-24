@@ -1,4 +1,4 @@
-import 'dart:io' show SocketException;
+import 'dart:io' show HttpException, SocketException;
 
 import 'package:dio/dio.dart';
 
@@ -40,7 +40,7 @@ abstract final class ErrorMapper {
       return MalformedResponseException(cause: error, stackTrace: stackTrace);
     }
 
-    if (error is SocketException) {
+    if (error is SocketException || error is HttpException) {
       return NetworkException(cause: error, stackTrace: stackTrace);
     }
 
@@ -96,7 +96,7 @@ abstract final class ErrorMapper {
       }
       cause = cause.error;
     }
-    if (cause is SocketException) {
+    if (cause is SocketException || cause is HttpException) {
       return NetworkException(cause: cause, stackTrace: stack);
     }
     if (cause is FormatException || cause is TypeError) {
