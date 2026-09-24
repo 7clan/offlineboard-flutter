@@ -24,13 +24,22 @@ import 'status_icon.dart';
 /// touches repositories.
 class TaskListItem extends ConsumerWidget {
   /// Creates the row.
-  const TaskListItem({super.key, required this.task, this.onTap});
+  const TaskListItem({
+    super.key,
+    required this.task,
+    this.onTap,
+    this.projectName,
+  });
 
   /// The task to render.
   final Task task;
 
   /// Tap handler (opens the task editor).
   final VoidCallback? onTap;
+
+  /// Name of the owning project, shown as a subtle chip on cross-project
+  /// lists; `null` hides it.
+  final String? projectName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -107,6 +116,11 @@ class TaskListItem extends ConsumerWidget {
                           isCompleted: task.isCompleted,
                         ),
                         PriorityChip(priority: task.priority),
+                        if (projectName != null)
+                          Semantics(
+                            label: 'Project: $projectName',
+                            child: _ProjectLabel(label: projectName!),
+                          ),
                       ],
                     ),
                   ],
@@ -119,6 +133,33 @@ class TaskListItem extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Subtle project name label for cross-project lists.
+class _ProjectLabel extends StatelessWidget {
+  const _ProjectLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
