@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/sync_status_banner.dart';
+
 /// Bottom-navigation shell for the three tab branches (projects, tasks,
-/// settings).
+/// settings) with the global sync banner pinned above the tab content.
 ///
 /// A [StatefulShellRoute.indexedStack] keeps each branch's navigator state
 /// (scroll position, filter bar) alive while the user switches tabs.
@@ -30,7 +32,12 @@ class HomeShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const SyncStatusBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => navigationShell.goBranch(
