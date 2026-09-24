@@ -265,7 +265,10 @@ class ProjectsDao extends DatabaseAccessor<AppDatabase>
           '$_statusColumns '
           'FROM projects p '
           'WHERE p.id = ?',
-          variables: [Variable.withString(id), Variable.withInt(maxAttempts)],
+          // The status subqueries' `attempts >= ?` placeholder appears in
+          // the text before the WHERE placeholder, so maxAttempts binds
+          // first.
+          variables: [Variable.withInt(maxAttempts), Variable.withString(id)],
           readsFrom: {projects, pendingMutations},
         )
         .watch()
@@ -378,7 +381,10 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
           'SELECT $_taskColumns, $_statusColumns '
           'FROM tasks t '
           'WHERE t.id = ?',
-          variables: [Variable.withString(id), Variable.withInt(maxAttempts)],
+          // The status subqueries' `attempts >= ?` placeholder appears in
+          // the text before the WHERE placeholder, so maxAttempts binds
+          // first.
+          variables: [Variable.withInt(maxAttempts), Variable.withString(id)],
           readsFrom: {tasks, pendingMutations},
         )
         .watch()
@@ -443,8 +449,17 @@ class SyncQueueDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Next push batch, oldest first (FIFO keeps server-side ordering sane).
-  Future<List<PendingMutationRow>> nextBatch({required int limit}) {
+  ///
+  /// Mutations that already exhausted [maxAttempts] failed pushes are
+  /// excluded: they stay queued with `SyncStatus.failed` until a manual
+  /// retry resets them, and must never crowd fresher entries out of the
+  /// batch (starvation guard).
+  Future<List<PendingMutationRow>> nextBatch({
+    required int limit,
+    required int maxAttempts,
+  }) {
     final query = select(pendingMutations)
+      ..where((t) => t.attempts.isSmallerThanValue(maxAttempts))
       ..orderBy([
         (t) => OrderingTerm.asc(t.queuedAt),
         (t) => OrderingTerm.asc(t.id),

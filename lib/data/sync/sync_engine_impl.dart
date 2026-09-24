@@ -94,7 +94,12 @@ class SyncEngineImpl implements SyncEngine {
     // Recover rows a crashed round left flagged as in-flight.
     await _queue.clearSyncingFlags();
 
-    final batch = await _queue.nextBatch(limit: _config.pushBatchSize);
+    // Exhausted mutations stay queued as `SyncStatus.failed` until a manual
+    // retryFailed() resets them — nextBatch excludes them.
+    final batch = await _queue.nextBatch(
+      limit: _config.pushBatchSize,
+      maxAttempts: _config.retryPolicy.maxAttempts,
+    );
     if (batch.isEmpty) return SyncOutcome.empty;
 
     final rowIds = <int>[for (final row in batch) row.id];
