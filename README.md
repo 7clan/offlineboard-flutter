@@ -131,7 +131,7 @@ dart run tool/sync_smoke.dart
 
 ## Project stats
 
-- 68 Dart files under `lib/` across 4 layers; `flutter analyze` reports no
+- 67 Dart files under `lib/` across 4 layers; `flutter analyze` reports no
   issues.
 - Deterministic throughout: injected `Clock` and `IdGenerator` — no
   `DateTime.now()` or unseeded randomness in app logic.

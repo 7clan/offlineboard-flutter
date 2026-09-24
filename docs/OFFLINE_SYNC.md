@@ -104,7 +104,7 @@ CREATE TABLE pending_mutations (
   last_error TEXT NULL,                  -- diagnostics
   is_syncing BOOLEAN NOT NULL DEFAULT 0  -- in-flight marker
 );
-CREATE UNIQUE INDEX unique key (mutation_id, entity_id);  -- dedupe
+-- table-level unique key (Drift `uniqueKeys`): UNIQUE (mutation_id, entity_id) — dedupe
 CREATE INDEX idx_queue_entity ON pending_mutations (entity_id, is_syncing, attempts);
 ```
 

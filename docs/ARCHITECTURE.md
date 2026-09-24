@@ -12,7 +12,7 @@ open any of them and the code matches.
 │ presentation/                                                     │
 │   screens/     projects/, tasks/, settings/, home_shell           │
 │   widgets/     task_list_item, sync_status_banner, skeletons, …   │
-│   providers/   Riverpod state + DI composition root (16 files)    │
+│   providers/   Riverpod state + DI composition root (17 files)    │
 │   routes/      app_router.dart (GoRouter)                         │
 └──────────────┬────────────────────────────────────────────────────┘
                │ watches providers; forwards user intent to controllers
@@ -142,7 +142,7 @@ outcome types `SyncOutcome` and `PullOutcome` — the engine's report card.
 
 ### `presentation/` — state + UI
 
-- **`providers/`** — 16 files: the composition root
+- **`providers/`** — 17 files: the composition root
   (`database_provider`, `sync_engine_provider`, `repositories_provider`,
   `core_providers`), lifecycle controllers (`sync_controller`,
   `sync_banner_provider`, `demo_connectivity_provider`,

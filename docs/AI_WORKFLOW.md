@@ -55,8 +55,8 @@ re-inventing them.
 
 | Claim | Verification |
 | --- | --- |
-| Static quality | `flutter analyze` → "No issues found!" (0 issues across 68 lib files) — run after every wave; no suppressions used (the presentation pass fixed all 6 analyzer findings properly, including initializing formals and unused imports) |
-| Formatting | `dart format .` → 68 files, 0 changed; enforced as a CI gate |
+| Static quality | `flutter analyze` → "No issues found!" (0 issues across 67 lib files) — run after every wave; no suppressions used (the presentation pass fixed all 6 analyzer findings properly, including initializing formals and unused imports) |
+| Formatting | `dart format .` → 68 files (67 lib + smoke tool), 0 changed; enforced as a CI gate |
 | Code review | Every wave's diff was reviewed before commit (the orchestrator's review fixed the bind-order bug and added the starvation guard — real logic errors the AI left behind) |
 | End-to-end behavior | `dart run tool/sync_smoke.dart` — pure-Dart harness over the real database + engine + server asserting the 7-scenario offline story (local-first offline creation, reconnect drain, pull idempotency, pull guard, local-wins conflict, server-wins conflict, cascade delete) |
 | Generated code | Drift's `app_database.g.dart` is committed and used as-is — no hand edits |

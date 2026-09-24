@@ -10,7 +10,7 @@ Reviewer instructions in brackets point at the evidence.
 | --- | --- |
 | Flutter / Material 3 | `lib/app.dart`, `lib/core/theme/app_theme.dart` (light+dark from one seed; component themes) |
 | Dart 3 (sealed classes, records, pattern matching) | `sealed class AppException` (`lib/core/errors/app_exception.dart`), sealed `SyncState` (`lib/presentation/providers/sync_controller.dart`), record types `({int count, int code})` (`RemoteConditions`, `lib/data/remote/mock_sync_server.dart`), switch pattern matching throughout the DAOs/engine |
-| Riverpod 3 | 16 provider files in `lib/presentation/providers/`: `NotifierProvider`, `StreamProvider`, `StreamProvider.family`, `FutureProvider`, `Provider`, `select`, provider overrides (`databaseProvider.overrideWith` docs) |
+| Riverpod 3 | 17 provider files in `lib/presentation/providers/`: `NotifierProvider`, `StreamProvider`, `StreamProvider.family`, `FutureProvider`, `Provider`, `select`, provider overrides (`databaseProvider.overrideWith` docs) |
 | GoRouter 16 | `lib/presentation/routes/app_router.dart` — `StatefulShellRoute.indexedStack` with 3 branches, root-navigator detail routes, route `extra` snapshot passing |
 | Drift 2 / SQLite | `lib/data/db/app_database.dart` + committed generated `app_database.g.dart`; 4 tables, 3 DAOs, custom SQL with `customSelect`, watch streams, transactions, migration strategy with 4 indexes |
 | Dio 5 | `lib/data/remote/sync_api_client.dart` — timeouts from `AppConfig`, typed error translation; `lib/core/errors/error_mapper.dart` for the full `DioExceptionType` mapping |
@@ -76,7 +76,7 @@ Reviewer instructions in brackets point at the evidence.
   (offline creation, reconnect drain, pull idempotency + cursor rewind,
   pull guard, local-wins conflict, server-wins conflict, cascade
   delete), deterministic clock, non-zero exit on failure.
-- **Verified static quality:** `flutter analyze` → 0 issues across 68
+- **Verified static quality:** `flutter analyze` → 0 issues across 67
   lib files; `dart format` clean (enforced in CI).
 
 ## Accessibility (verified)

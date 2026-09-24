@@ -1,7 +1,7 @@
 # State management (Riverpod)
 
 OfflineBoard uses **Riverpod 3** as both the DI container and the state
-solution. All 16 provider files live in `lib/presentation/providers/` —
+solution. All 17 provider files live in `lib/presentation/providers/` —
 that is the application/state layer of the architecture. Screens are
 "dumb": they watch providers and forward user intent to notifiers.
 

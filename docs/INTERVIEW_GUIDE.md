@@ -81,7 +81,7 @@ error mapping cleanly; `connectivity_plus` is wrapped behind a
 
 **Question:** What's the size and quality story?
 
-**Simple:** 68 Dart files under `lib/` across core/domain/data/presentation;
+**Simple:** 67 Dart files under `lib/` across core/domain/data/presentation;
 `flutter analyze` reports no issues; `dart format` is clean; the sync
 pipeline has an end-to-end smoke harness (`tool/sync_smoke.dart`); CI runs
 format + analyze + tests on every push and PR.
