@@ -2,6 +2,7 @@
 ///
 /// Stored as indexes (fast filtering in SQL) and serialized by name on the
 /// wire (robust to reordering) — the mappers own both conversions.
+library;
 
 /// Per-record sync status surfaced in the UI (badge next to every project
 /// and task).

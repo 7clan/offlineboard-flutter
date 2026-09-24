@@ -55,7 +55,7 @@ abstract final class Validators {
   static String? dueDateTextFromMillis(int? millis) {
     if (millis == null) return null;
     final date = DateTime.fromMillisecondsSinceEpoch(millis).toLocal();
-    final two = (int v) => v.toString().padLeft(2, '0');
+    String two(int value) => value.toString().padLeft(2, '0');
     return '${date.year}-${two(date.month)}-${two(date.day)}';
   }
 }

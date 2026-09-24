@@ -17,8 +17,9 @@ typedef IdGenerator = String Function();
 /// With an injected [Clock] the output is fully deterministic, which keeps
 /// unit tests stable (no unseeded randomness anywhere in the app).
 class TimeBasedIdGenerator {
-  /// Creates a generator reading time from [clock].
-  TimeBasedIdGenerator({Clock clock = systemClock}) : _clock = clock;
+  /// Creates a generator reading time from [clock] (defaults to the real
+  /// system clock).
+  TimeBasedIdGenerator({Clock? clock}) : _clock = clock ?? systemClock;
 
   final Clock _clock;
   int _counter = 0;
@@ -26,6 +27,7 @@ class TimeBasedIdGenerator {
   /// Returns a fresh unique id (also usable as an idempotency key).
   String next() {
     final stamp = _clock().microsecondsSinceEpoch.toRadixString(36);
-    return '$stamp-${_counter++.toRadixString(36)}';
+    final sequence = (_counter++).toRadixString(36);
+    return '$stamp-$sequence';
   }
 }
