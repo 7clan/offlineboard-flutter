@@ -47,6 +47,15 @@ abstract final class Validators {
     if (!_datePattern.hasMatch(trimmed)) return null;
     final date = DateTime.tryParse(trimmed);
     if (date == null) return null;
+    // `DateTime.tryParse` rolls out-of-range components over (2023-02-29
+    // becomes March 1) instead of rejecting them. A real calendar date
+    // round-trips exactly; a rolled-over one changes its components.
+    final parts = trimmed.split('-');
+    if (date.year != int.parse(parts[0]) ||
+        date.month != int.parse(parts[1]) ||
+        date.day != int.parse(parts[2])) {
+      return null;
+    }
     return DateTime(date.year, date.month, date.day).millisecondsSinceEpoch;
   }
 
