@@ -15,19 +15,24 @@ class HomeShell extends StatelessWidget {
   /// The shell's branch controller.
   final StatefulNavigationShell navigationShell;
 
-  static const _destinations = <({IconData icon, IconData selectedIcon, String label})>[
-    (icon: Icons.folder_outlined, selectedIcon: Icons.folder, label: 'Projects'),
-    (
-      icon: Icons.checklist_outlined,
-      selectedIcon: Icons.checklist,
-      label: 'Tasks',
-    ),
-    (
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-      label: 'Settings',
-    ),
-  ];
+  static const _destinations =
+      <({IconData icon, IconData selectedIcon, String label})>[
+        (
+          icon: Icons.folder_outlined,
+          selectedIcon: Icons.folder,
+          label: 'Projects',
+        ),
+        (
+          icon: Icons.checklist_outlined,
+          selectedIcon: Icons.checklist,
+          label: 'Tasks',
+        ),
+        (
+          icon: Icons.settings_outlined,
+          selectedIcon: Icons.settings,
+          label: 'Settings',
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,8 +67,9 @@ class _TaskFilterBarState extends ConsumerState<TaskFilterBar> {
                 child: TextField(
                   controller: _searchController,
                   textInputAction: TextInputAction.search,
-                  onChanged:
-                      ref.read(taskFilterStateProvider.notifier).onSearchChanged,
+                  onChanged: ref
+                      .read(taskFilterStateProvider.notifier)
+                      .onSearchChanged,
                   decoration: InputDecoration(
                     hintText: 'Search tasks',
                     prefixIcon: const Icon(Icons.search),
@@ -81,9 +80,7 @@ class _TaskFilterBarState extends ConsumerState<TaskFilterBar> {
                             onPressed: () {
                               _searchController.clear();
                               ref
-                                  .read(
-                                    taskFilterStateProvider.notifier
-                                  )
+                                  .read(taskFilterStateProvider.notifier)
                                   .setSearch('');
                             },
                           )
@@ -128,10 +125,9 @@ class _TaskFilterBarState extends ConsumerState<TaskFilterBar> {
               for (final (:value, :label) in _priorityOptions)
                 ChoiceChip(
                   label: Text(label),
-                  selected:
-                      value == null
-                          ? filter.priority == null
-                          : filter.priority == value,
+                  selected: value == null
+                      ? filter.priority == null
+                      : filter.priority == value,
                   onSelected: (_) => ref
                       .read(taskFilterStateProvider.notifier)
                       .setPriority(value),
@@ -159,14 +155,12 @@ class _TaskFilterBarState extends ConsumerState<TaskFilterBar> {
     );
   }
 
-  static const _completionOptions = <({
-    TaskCompletionFilter value,
-    String label,
-  })>[
-    (value: TaskCompletionFilter.all, label: 'All'),
-    (value: TaskCompletionFilter.incomplete, label: 'Pending'),
-    (value: TaskCompletionFilter.completed, label: 'Completed'),
-  ];
+  static const _completionOptions =
+      <({TaskCompletionFilter value, String label})>[
+        (value: TaskCompletionFilter.all, label: 'All'),
+        (value: TaskCompletionFilter.incomplete, label: 'Pending'),
+        (value: TaskCompletionFilter.completed, label: 'Completed'),
+      ];
 
   static const _priorityOptions = <({TaskPriority? value, String label})>[
     (value: null, label: 'Any'),

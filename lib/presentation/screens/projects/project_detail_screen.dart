@@ -106,9 +106,8 @@ class _ProjectDetail extends ConsumerWidget {
       final message =
           ref.read(projectEditorProvider).submissionError ??
           'The project could not be deleted.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -150,7 +149,10 @@ class _ProjectDetail extends ConsumerWidget {
                   children: [
                     Icon(Icons.delete_outline, color: scheme.error),
                     const SizedBox(width: 12),
-                    Text('Delete project', style: TextStyle(color: scheme.error)),
+                    Text(
+                      'Delete project',
+                      style: TextStyle(color: scheme.error),
+                    ),
                   ],
                 ),
               ),

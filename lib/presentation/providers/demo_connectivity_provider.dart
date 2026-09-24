@@ -33,11 +33,11 @@ import 'connectivity_provider.dart';
 /// fake keep full control of connectivity; the Settings switch then drives a
 /// detached wrapper and does not interfere.
 class DemoConnectivityService extends ConnectivityService {
-  /// Creates the wrapper around [inner].
+  /// Creates the wrapper around a connectivity [platform] source.
   DemoConnectivityService({
-    required ConnectivityService inner,
+    required ConnectivityService platform,
     bool initialForcedOffline = false,
-  }) : _inner = inner,
+  }) : _inner = platform,
        _forcedOffline = initialForcedOffline;
 
   final ConnectivityService _inner;
@@ -54,7 +54,7 @@ class DemoConnectivityService extends ConnectivityService {
   /// Whether the demo switch currently forces offline mode.
   bool get isForcedOffline => _forcedOffline;
 
-  /// Starts forwarding the inner service's changes; call once after
+  /// Starts forwarding the wrapped service's changes; call once after
   /// construction (kept out of the constructor so construction stays
   /// synchronous and side-effect free).
   void start() {
@@ -74,8 +74,8 @@ class DemoConnectivityService extends ConnectivityService {
     _emit();
   }
 
-  /// Stops forwarding changes. The inner service's own disposal belongs to
-  /// its provider ([platformConnectivityProvider]).
+  /// Stops forwarding changes. The wrapped service's own disposal belongs
+  /// to its provider ([platformConnectivityProvider]).
   Future<void> dispose() async {
     await _innerSubscription?.cancel();
     _innerSubscription = null;
@@ -127,7 +127,7 @@ final platformConnectivityProvider = Provider<ConnectivityService>((ref) {
 /// demo offline switch.
 final demoConnectivityProvider = Provider<DemoConnectivityService>((ref) {
   final service = DemoConnectivityService(
-    inner: ref.watch(platformConnectivityProvider),
+    platform: ref.watch(platformConnectivityProvider),
     initialForcedOffline: ref.read(simulateOfflineProvider),
   );
   service.start();

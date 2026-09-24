@@ -29,7 +29,11 @@ enum SyncBannerKind {
 /// The sync banner's derived state.
 class SyncBannerState {
   /// Creates the banner state.
-  const SyncBannerState({required this.kind, this.message, this.queuedCount = 0});
+  const SyncBannerState({
+    required this.kind,
+    this.message,
+    this.queuedCount = 0,
+  });
 
   /// Which banner variant to show.
   final SyncBannerKind kind;
@@ -61,9 +65,10 @@ class SyncBannerState {
 ///
 /// Pure presentation state: no engine or repository calls live here — the
 /// banner's buttons delegate to the sync controller.
-final syncBannerProvider = NotifierProvider<SyncBannerController, SyncBannerState>(
-  SyncBannerController.new,
-);
+final syncBannerProvider =
+    NotifierProvider<SyncBannerController, SyncBannerState>(
+      SyncBannerController.new,
+    );
 
 /// The [syncBannerProvider] notifier.
 class SyncBannerController extends Notifier<SyncBannerState> {
@@ -82,7 +87,8 @@ class SyncBannerController extends Notifier<SyncBannerState> {
   Future<void> syncNow() => ref.read(syncControllerProvider.notifier).syncNow();
 
   /// Manual "Retry" after a failed round (banner button).
-  Future<void> retry() => ref.read(syncControllerProvider.notifier).retryFailed();
+  Future<void> retry() =>
+      ref.read(syncControllerProvider.notifier).retryFailed();
 
   SyncBannerState _map(SyncState sync, int queued) {
     final SyncBannerState next;
@@ -90,7 +96,8 @@ class SyncBannerController extends Notifier<SyncBannerState> {
       case SyncOffline():
         next = const SyncBannerState(
           kind: SyncBannerKind.offline,
-          message: 'Offline — changes are saved locally and will sync '
+          message:
+              'Offline — changes are saved locally and will sync '
               'when you reconnect.',
         );
       case SyncSyncing(:final queuedCount):

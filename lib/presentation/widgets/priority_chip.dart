@@ -29,8 +29,14 @@ class PriorityChip extends StatelessWidget {
         scheme.surfaceContainerHighest,
         scheme.onSurfaceVariant,
       ),
-      TaskPriority.medium => (scheme.secondaryContainer, scheme.onSecondaryContainer),
-      TaskPriority.high => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      TaskPriority.medium => (
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      TaskPriority.high => (
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
       TaskPriority.urgent => (scheme.errorContainer, scheme.onErrorContainer),
     };
     return Semantics(

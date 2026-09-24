@@ -44,9 +44,7 @@ class SyncStatusIcon extends StatelessWidget {
     );
   }
 
-  static ({IconData? icon, Color color, String label}) _resolve(
-    ColorScheme scheme,
-  ) {
+  ({IconData? icon, Color color, String label}) _resolve(ColorScheme scheme) {
     switch (status) {
       case SyncStatus.synced:
         return (

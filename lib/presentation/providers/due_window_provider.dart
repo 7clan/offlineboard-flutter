@@ -62,14 +62,10 @@ int? dueWindowCutoff(DueWindow window, Clock clock) {
     case DueWindow.any:
       return null;
     case DueWindow.today:
-      return startOfToday
-          .add(const Duration(days: 1))
-          .millisecondsSinceEpoch -
+      return startOfToday.add(const Duration(days: 1)).millisecondsSinceEpoch -
           1;
     case DueWindow.thisWeek:
-      return startOfToday
-          .add(const Duration(days: 7))
-          .millisecondsSinceEpoch -
+      return startOfToday.add(const Duration(days: 7)).millisecondsSinceEpoch -
           1;
     case DueWindow.overdue:
       return startOfToday.millisecondsSinceEpoch - 1;

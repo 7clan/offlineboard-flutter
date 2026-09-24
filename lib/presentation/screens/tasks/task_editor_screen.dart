@@ -151,9 +151,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       helpText: 'DUE DATE',
     );
     if (picked == null || !mounted) return;
-    ref.read(taskEditorProvider.notifier).setDueDate(
-          DateTime(picked.year, picked.month, picked.day)
-              .millisecondsSinceEpoch,
+    ref
+        .read(taskEditorProvider.notifier)
+        .setDueDate(
+          DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+          ).millisecondsSinceEpoch,
         );
   }
 
@@ -190,10 +195,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (_loadingTask) {
       return Scaffold(
         appBar: appBar,
-        body: const Center(
+        body: Center(
           child: Semantics(
             label: 'Loading task',
-            child: CircularProgressIndicator(),
+            child: const CircularProgressIndicator(),
           ),
         ),
       );
@@ -346,9 +351,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   ],
                   onChanged: (value) {
                     if (value != null) {
-                      ref
-                          .read(taskEditorProvider.notifier)
-                          .setProjectId(value);
+                      ref.read(taskEditorProvider.notifier).setProjectId(value);
                     }
                   },
                   hint: projects.isEmpty ? const Text('No projects yet') : null,

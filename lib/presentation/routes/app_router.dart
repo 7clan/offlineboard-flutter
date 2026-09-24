@@ -35,9 +35,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/tasks/new',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => TaskEditorScreen(
-          projectId: state.uri.queryParameters['project'],
-        ),
+        builder: (context, state) =>
+            TaskEditorScreen(projectId: state.uri.queryParameters['project']),
       ),
       GoRoute(
         path: '/tasks/:id/edit',

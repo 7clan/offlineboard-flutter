@@ -18,7 +18,6 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final syncState = ref.watch(syncControllerProvider);
     final queued = ref.watch(
       queueBadgeProvider.select((value) => value.value ?? 0),
@@ -134,9 +133,8 @@ class _SyncCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () => unawaited(
-                ref.read(syncBannerProvider.notifier).retry(),
-              ),
+              onPressed: () =>
+                  unawaited(ref.read(syncBannerProvider.notifier).retry()),
               icon: const Icon(Icons.replay),
               label: const Text('Retry failed changes'),
             ),
@@ -162,7 +160,9 @@ class _SyncCard extends ConsumerWidget {
         final changeWord = queuedCount == 1 ? 'change' : 'changes';
         return (
           icon: null,
-          status: 'Syncing $queuedCount $changeWord…',
+          status: queuedCount == 0
+              ? 'Syncing…'
+              : 'Syncing $queuedCount $changeWord…',
         );
       case SyncFailed(:final message):
         return (icon: Icons.cloud_off_outlined, status: message);
@@ -220,10 +220,7 @@ class _AboutCard extends StatelessWidget {
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'OfflineBoard',
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text('OfflineBoard', style: theme.textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 4),

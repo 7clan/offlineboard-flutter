@@ -9,10 +9,7 @@ import 'repositories_provider.dart';
 /// Emits `null` for unknown ids; tombstones (deleted projects) are included
 /// so the detail page can show its "project was deleted" state before the
 /// user navigates away.
-final projectByIdProvider = StreamProvider.family<Project?, String>((
-  ref,
-  id,
-) {
+final projectByIdProvider = StreamProvider.family<Project?, String>((ref, id) {
   return ref.watch(projectRepositoryProvider).watchProject(id);
 });
 

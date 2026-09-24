@@ -9,7 +9,11 @@ import '../../core/utils/formatters.dart';
 /// at a glance; completed tasks dim to the neutral variant.
 class DueDateChip extends StatelessWidget {
   /// Creates the chip.
-  const DueDateChip({super.key, required this.dueDate, this.isCompleted = false});
+  const DueDateChip({
+    super.key,
+    required this.dueDate,
+    this.isCompleted = false,
+  });
 
   /// The task's due date (UTC millis), or `null` for none (nothing is
   /// shown).
@@ -31,7 +35,11 @@ class DueDateChip extends StatelessWidget {
   }) {
     if (dueDate == null || isCompleted) return false;
     final reference = (now ?? DateTime.now());
-    final startOfToday = DateTime(reference.year, reference.month, reference.day);
+    final startOfToday = DateTime(
+      reference.year,
+      reference.month,
+      reference.day,
+    );
     final due = DateTime.fromMillisecondsSinceEpoch(dueDate).toLocal();
     final dueDay = DateTime(due.year, due.month, due.day);
     return dueDay.isBefore(startOfToday);
@@ -41,10 +49,7 @@ class DueDateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (dueDate == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
-    final overdue = isOverdue(
-      dueDate,
-      isCompleted: isCompleted,
-    );
+    final overdue = isOverdue(dueDate, isCompleted: isCompleted);
     final label = AppFormatters.dueDateRelative(dueDate);
     final background = overdue
         ? theme.colorScheme.errorContainer

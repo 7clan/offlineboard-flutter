@@ -54,8 +54,10 @@ class TasksScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Expanded(
               child: tasksAsync.when(
-                loading: () =>
-                    const ListSkeleton(count: 8, semanticLabel: 'Loading tasks'),
+                loading: () => const ListSkeleton(
+                  count: 8,
+                  semanticLabel: 'Loading tasks',
+                ),
                 error: (error, _) => ErrorView(
                   message: error is AppException
                       ? error.userMessage

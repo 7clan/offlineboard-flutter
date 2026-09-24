@@ -93,10 +93,8 @@ class _ProjectEditorDialogState extends ConsumerState<ProjectEditorDialog> {
     final project = widget.project;
     if (project == null) return;
     final stats =
-        ref.read(projectStatsProvider)[project.id] ??
-        ProjectStats.empty;
-    final taskCount =
-        stats.total == 0 ? 'no tasks' : '${stats.total} task(s)';
+        ref.read(projectStatsProvider)[project.id] ?? ProjectStats.empty;
+    final taskCount = stats.total == 0 ? 'no tasks' : '${stats.total} task(s)';
     final confirmed = await showConfirmDeleteDialog(
       context,
       title: 'Delete project?',
@@ -153,8 +151,7 @@ class _ProjectEditorDialogState extends ConsumerState<ProjectEditorDialog> {
                     value: value,
                     name: name,
                     selected: state.colorValue == value,
-                    onSelect:
-                        ref.read(projectEditorProvider.notifier).setColor,
+                    onSelect: ref.read(projectEditorProvider.notifier).setColor,
                   ),
               ],
             ),
@@ -201,8 +198,7 @@ class _ProjectEditorDialogState extends ConsumerState<ProjectEditorDialog> {
       ),
       actions: <Widget>[
         TextButton(
-          onPressed:
-              busy ? null : () => Navigator.of(context).pop(null),
+          onPressed: busy ? null : () => Navigator.of(context).pop(null),
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -221,7 +217,7 @@ class _ProjectEditorDialogState extends ConsumerState<ProjectEditorDialog> {
 }
 
 /// One accent-color swatch: a 48×48 dp target, announced as
-/// "<name> color, selected/not selected".
+/// "`<name>` color, selected/not selected".
 class _ColorOption extends StatelessWidget {
   const _ColorOption({
     required this.value,

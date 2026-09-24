@@ -46,9 +46,7 @@ class TaskListItem extends ConsumerWidget {
     final theme = Theme.of(context);
 
     void toggle() {
-      unawaited(
-        ref.read(taskEditorProvider.notifier).toggleCompleted(task.id),
-      );
+      unawaited(ref.read(taskEditorProvider.notifier).toggleCompleted(task.id));
     }
 
     final checkboxLabel = task.isCompleted

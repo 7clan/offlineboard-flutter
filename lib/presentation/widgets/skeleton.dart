@@ -63,7 +63,11 @@ class _SkeletonRow extends StatelessWidget {
 /// scaling.
 class ListSkeleton extends StatelessWidget {
   /// Creates the skeleton list.
-  const ListSkeleton({super.key, this.count = 6, this.semanticLabel = 'Loading'});
+  const ListSkeleton({
+    super.key,
+    this.count = 6,
+    this.semanticLabel = 'Loading',
+  });
 
   /// How many rows to draw.
   final int count;

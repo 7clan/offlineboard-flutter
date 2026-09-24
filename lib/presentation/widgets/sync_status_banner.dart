@@ -102,7 +102,8 @@ class SyncStatusBanner extends ConsumerWidget {
     IconData? icon,
     String message,
     String? actionLabel,
-  }) _appearance(SyncBannerState banner, ColorScheme scheme) {
+  })
+  _appearance(SyncBannerState banner, ColorScheme scheme) {
     final queued = banner.queuedCount;
     final changeWord = queued == 1 ? 'change' : 'changes';
     switch (banner.kind) {
@@ -135,7 +136,7 @@ class SyncStatusBanner extends ConsumerWidget {
           background: scheme.secondaryContainer,
           foreground: scheme.onSecondaryContainer,
           icon: null,
-          message: 'Syncing $queued $changeWord…',
+          message: queued == 0 ? 'Syncing…' : 'Syncing $queued $changeWord…',
           actionLabel: null,
         );
       case SyncBannerKind.failed:
