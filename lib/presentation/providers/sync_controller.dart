@@ -132,6 +132,7 @@ class SyncController extends Notifier<SyncState> {
   /// While a round is in flight the call is coalesced into a single
   /// follow-up round instead of piling up concurrent pushes.
   Future<void> syncNow() async {
+    if (!ref.mounted) return;
     final engine = _engine;
     if (engine == null) return;
     await _runRound(engine, engine.syncNow);
@@ -140,6 +141,7 @@ class SyncController extends Notifier<SyncState> {
   /// The manual "retry" action: resets the failure bookkeeping of
   /// exhausted mutations and pushes them again.
   Future<void> retryFailed() async {
+    if (!ref.mounted) return;
     final engine = _engine;
     if (engine == null) return;
     await _runRound(engine, engine.retryFailed);
@@ -155,6 +157,9 @@ class SyncController extends Notifier<SyncState> {
   }
 
   void _onConnectivityChanged(bool online) {
+    // A queued stream event can land after disposal (the subscription
+    // cancel is async) — never touch a dead Ref.
+    if (!ref.mounted) return;
     if (!online) {
       state = const SyncOffline();
       return;
@@ -177,6 +182,10 @@ class SyncController extends Notifier<SyncState> {
       _followUpPending = true;
       return;
     }
+    // Rounds are fire-and-forget; they can outlive this element (container
+    // shutdown in tests, dependency rebuild in the app). Bail out instead
+    // of touching a dead Ref.
+    if (!ref.mounted) return;
     if (!ref.read(connectivityServiceProvider).isOnline) {
       state = const SyncOffline();
       return;
@@ -186,7 +195,9 @@ class SyncController extends Notifier<SyncState> {
     _retryTimer?.cancel();
     try {
       state = SyncSyncing(await engine.queuedMutationCount());
+      if (!ref.mounted) return;
       final outcome = await round();
+      if (!ref.mounted) return;
       if (outcome.hasFailures) {
         final error = outcome.error;
         final message = error is AppException
@@ -208,18 +219,20 @@ class SyncController extends Notifier<SyncState> {
         state = const SyncIdle();
       }
     } on AppException catch (error) {
+      if (!ref.mounted) return;
       state = SyncFailed(error.userMessage);
       _scheduleRetry(ref.read(appConfigProvider).retryPolicy.backoffFor(1));
     } on Object {
       // Belt & braces: the engine maps its own errors, but a raw escape
       // must never reach the UI either.
+      if (!ref.mounted) return;
       state = const SyncFailed('Something went wrong while syncing.');
       _scheduleRetry(ref.read(appConfigProvider).retryPolicy.backoffFor(1));
     } finally {
       _busy = false;
       if (_followUpPending) {
         _followUpPending = false;
-        unawaited(_runRound(engine, round));
+        if (ref.mounted) unawaited(_runRound(engine, round));
       }
     }
   }
