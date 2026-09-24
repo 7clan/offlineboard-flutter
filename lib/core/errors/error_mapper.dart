@@ -49,8 +49,9 @@ abstract final class ErrorMapper {
   static AppException _mapBadResponse(DioException error, StackTrace? stack) {
     final status = error.response?.statusCode ?? 0;
     final body = error.response?.data;
-    final Map<String, dynamic> json =
-        body is Map<String, dynamic> ? body : const <String, dynamic>{};
+    final Map<String, dynamic> json = body is Map<String, dynamic>
+        ? body
+        : const <String, dynamic>{};
 
     switch (status) {
       case 401:

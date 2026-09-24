@@ -80,7 +80,9 @@ class SyncRetryPolicy {
   /// Delay before attempt `attempts + 1`, given how many attempts have
   /// already failed.
   Duration backoffFor(int attempts) {
-    final growth = math.pow(backoffMultiplier, math.max(attempts, 0)).toDouble();
+    final growth = math
+        .pow(backoffMultiplier, math.max(attempts, 0))
+        .toDouble();
     final millis = (initialBackoff.inMilliseconds * growth).round();
     final capped = math.min(millis, maxBackoff.inMilliseconds);
     return Duration(milliseconds: capped);

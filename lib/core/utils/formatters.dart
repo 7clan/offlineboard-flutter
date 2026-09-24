@@ -46,6 +46,7 @@ abstract final class AppFormatters {
 
   /// Full timestamp label, e.g. `Jan 5, 2026 · 14:30` — for detail panes and
   /// sync diagnostics.
-  static String timestamp(int millis) =>
-      _stampFormat.format(DateTime.fromMillisecondsSinceEpoch(millis).toLocal());
+  static String timestamp(int millis) => _stampFormat.format(
+    DateTime.fromMillisecondsSinceEpoch(millis).toLocal(),
+  );
 }

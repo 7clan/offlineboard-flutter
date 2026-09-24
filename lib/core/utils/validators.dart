@@ -14,8 +14,7 @@ abstract final class Validators {
   static String? taskTitle(String? value) => _nonEmptyTitle(value, 'Title');
 
   /// Project names follow the same rule as task titles.
-  static String? projectName(String? value) =>
-      _nonEmptyTitle(value, 'Name');
+  static String? projectName(String? value) => _nonEmptyTitle(value, 'Name');
 
   static String? _nonEmptyTitle(String? value, String label) {
     final trimmed = value?.trim() ?? '';
@@ -48,8 +47,7 @@ abstract final class Validators {
     if (!_datePattern.hasMatch(trimmed)) return null;
     final date = DateTime.tryParse(trimmed);
     if (date == null) return null;
-    return DateTime(date.year, date.month, date.day)
-        .millisecondsSinceEpoch;
+    return DateTime(date.year, date.month, date.day).millisecondsSinceEpoch;
   }
 
   /// Formats UTC millis back into the `yyyy-MM-dd` text form (round-trips
