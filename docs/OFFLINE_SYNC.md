@@ -255,7 +255,9 @@ if (localWins):
        payload   = corrected row
        baseUpdatedAt = snapshot.updatedAt      // ← re-based onto the server
        baseVersion   = snapshot.version
-   // → next push applies cleanly; convergence WITHOUT losing local edits
+   // → the corrected mutation is delivered in a follow-up wave of the
+   // SAME push round (bounded), so the server converges immediately —
+   // WITHOUT losing local edits
 else:
    upsert server payload (the winner) locally
    removeMutationsForEntity(entityId)          // drop the losing mutation
@@ -275,6 +277,11 @@ Three properties worth stating explicitly:
   `mutationId`; the server remembers processed ids and answers replays
   `applied` without re-applying (`MockSyncServer._processedMutationIds`).
   Duplicate/dropped-duplicate pushes are harmless.
+- **Immediate convergence.** The corrected mutation is not left waiting
+  for the next sync: `pushPending` delivers it (and only it — rejected or
+  failed entries are never re-attempted) in bounded follow-up waves, so a
+  local-wins conflict drains the queue and converges the server within a
+  single `syncNow`.
 
 A malformed conflict record (missing `record`, unparseable payload) or a
 database failure while resolving → the mutation gets `markAttempted` with

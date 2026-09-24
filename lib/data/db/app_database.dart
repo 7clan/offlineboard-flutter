@@ -490,6 +490,18 @@ class SyncQueueDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Queue rows for the given mutation ids — the engine fetches the
+  /// corrected mutations a local-wins conflict resolution just re-armed so
+  /// it can deliver them in the same round.
+  Future<List<PendingMutationRow>> rowsByMutationIds(
+    List<String> mutationIds,
+  ) async {
+    if (mutationIds.isEmpty) return const [];
+    final query = select(pendingMutations)
+      ..where((t) => t.mutationId.isIn(mutationIds));
+    return query.get();
+  }
+
   /// Removes mutations after they were applied/resolved.
   Future<void> removeMutations(List<int> rowIds) async {
     if (rowIds.isEmpty) return;

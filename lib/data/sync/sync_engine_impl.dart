@@ -30,7 +30,11 @@ import '../remote/sync_wire_types.dart';
 ///   Drift transaction; `rejected` and transport errors count as failed
 ///   attempts (exponential backoff via [AppConfig.retryPolicy]); once a
 ///   mutation exhausts [SyncRetryPolicy.maxAttempts] it surfaces as
-///   `SyncStatus.failed` and stays queued for [retryFailed].
+///   `SyncStatus.failed` and stays queued for [retryFailed]. A local-wins
+///   resolution re-arms the winning row as a *corrected* mutation whose
+///   base version matches the server's, and that correction is delivered
+///   in the same round (bounded follow-up waves), so the server converges
+///   immediately instead of on the next sync.
 /// * **Pull** — records changed since the persisted `lastPullAt` cursor are
 ///   applied with a last-write-wins guard: a row with pending queue entries
 ///   is never overwritten, and the server only wins when its `updatedAt` is
@@ -74,6 +78,11 @@ class SyncEngineImpl implements SyncEngine {
 
   SyncQueueDao get _queue => _db.syncQueueDao;
 
+  /// Maximum number of follow-up waves that deliver corrected mutations —
+  /// bounds the round even against a server that answers every wave with
+  /// a fresh conflict.
+  static const int _maxCorrectionWaves = 3;
+
   /// Entity ids of the mutations in the batch currently being pushed.
   ///
   /// This mirrors the queue's `is_syncing` flag (which the Drift watch
@@ -103,19 +112,62 @@ class SyncEngineImpl implements SyncEngine {
     if (batch.isEmpty) return SyncOutcome.empty;
 
     final rowIds = <int>[for (final row in batch) row.id];
-    _inFlightEntityIds.addAll(<String>{for (final row in batch) row.entityId});
+    final entityIds = <String>{for (final row in batch) row.entityId};
+    _inFlightEntityIds.addAll(entityIds);
     await _queue.markSyncing(rowIds);
     try {
-      return await _pushBatch(batch);
+      var round = await _pushBatch(batch);
+      var outcome = round.outcome;
+      // A local-wins conflict resolution re-arms the winning row as a
+      // *corrected* mutation (already queued inside the resolution
+      // transaction, its base version now matching the server's). Deliver
+      // exactly those — never re-attempting rejected or failed entries —
+      // so the server converges within this round. Bounded waves keep the
+      // round finite even against a server that keeps conflicting.
+      for (var wave = 0; wave < _maxCorrectionWaves; wave++) {
+        if (round.outcome.error != null || round.reArmed.isEmpty) break;
+        round = await _pushCorrected(round.reArmed);
+        outcome = _mergedOutcome(outcome, round.outcome);
+      }
+      return outcome;
     } finally {
-      _inFlightEntityIds.removeAll(<String>{
-        for (final row in batch) row.entityId,
-      });
+      _inFlightEntityIds.removeAll(entityIds);
     }
   }
 
+  /// Delivers only the corrected mutations a local-wins conflict resolution
+  /// re-armed in the previous wave.
+  Future<_PushRound> _pushCorrected(List<MutationRecord> reArmed) async {
+    final rows = await _queue.rowsByMutationIds([
+      for (final record in reArmed) record.mutationId,
+    ]);
+    if (rows.isEmpty) return const _PushRound(SyncOutcome.empty, []);
+    await _queue.markSyncing([for (final row in rows) row.id]);
+    final entityIds = <String>{for (final row in rows) row.entityId};
+    _inFlightEntityIds.addAll(entityIds);
+    try {
+      return await _pushBatch(rows);
+    } finally {
+      _inFlightEntityIds.removeAll(entityIds);
+    }
+  }
+
+  /// Sums two wave outcomes. The retry hint and error of the *later* wave
+  /// win — they were computed against the newest queue state.
+  SyncOutcome _mergedOutcome(SyncOutcome earlier, SyncOutcome later) {
+    return SyncOutcome(
+      mutationsSent: earlier.mutationsSent + later.mutationsSent,
+      applied: earlier.applied + later.applied,
+      conflictsResolved: earlier.conflictsResolved + later.conflictsResolved,
+      rejected: earlier.rejected + later.rejected,
+      failed: earlier.failed + later.failed,
+      retryAfter: later.retryAfter,
+      error: later.error ?? earlier.error,
+    );
+  }
+
   /// Pushes one decoded batch and folds the per-item results into an outcome.
-  Future<SyncOutcome> _pushBatch(List<PendingMutationRow> batch) async {
+  Future<_PushRound> _pushBatch(List<PendingMutationRow> batch) async {
     final rowsByMutationId = <String, PendingMutationRow>{
       for (final row in batch) row.mutationId: row,
     };
@@ -132,6 +184,10 @@ class SyncEngineImpl implements SyncEngine {
 
     // Decode queue rows into wire mutations; corrupt entries fail closed
     // (they stay queued with a diagnostic error for manual retry).
+    // Corrected mutations re-armed by local-wins conflict resolutions in
+    // this wave — delivered right after the wave completes.
+    final reArmed = <MutationRecord>[];
+
     final records = <String, MutationRecord>{};
     final wire = <PushMutation>[];
     for (final row in batch) {
@@ -172,7 +228,11 @@ class SyncEngineImpl implements SyncEngine {
             case PushItemStatus.conflict:
               final record = records[result.mutationId]!;
               try {
-                await _resolveConflict(mutation: record, item: result);
+                final corrected = await _resolveConflict(
+                  mutation: record,
+                  item: result,
+                );
+                if (corrected != null) reArmed.add(corrected);
                 conflictsResolved++;
               } on AppException catch (error) {
                 // Malformed conflict record or a database failure while
@@ -203,14 +263,17 @@ class SyncEngineImpl implements SyncEngine {
       }
     }
 
-    return SyncOutcome(
-      mutationsSent: sent,
-      applied: applied,
-      conflictsResolved: conflictsResolved,
-      rejected: rejected,
-      failed: failed,
-      retryAfter: await _retryAfter(),
-      error: failure,
+    return _PushRound(
+      SyncOutcome(
+        mutationsSent: sent,
+        applied: applied,
+        conflictsResolved: conflictsResolved,
+        rejected: rejected,
+        failed: failed,
+        retryAfter: await _retryAfter(),
+        error: failure,
+      ),
+      reArmed,
     );
   }
 
@@ -231,7 +294,11 @@ class SyncEngineImpl implements SyncEngine {
   /// Resolves one CONFLICT result: the resolver decides mutation-vs-server,
   /// then the engine applies the winner locally and collapses the entity's
   /// queue inside a single transaction.
-  Future<void> _resolveConflict({
+  ///
+  /// Returns the corrected mutation that was re-armed when the local side
+  /// won, or `null` when the server's record won (its content simply
+  /// replaced the local row and the queued mutation was dropped).
+  Future<MutationRecord?> _resolveConflict({
     required MutationRecord mutation,
     required PushResultItem item,
   }) async {
@@ -252,27 +319,26 @@ class SyncEngineImpl implements SyncEngine {
       mutation: mutation,
       serverRecord: snapshot,
     );
-    switch (mutation.entityType) {
-      case EntityType.project:
-        await _resolveProjectConflict(
-          mutation: mutation,
-          snapshot: snapshot,
-          verdict: verdict,
-        );
-      case EntityType.task:
-        await _resolveTaskConflict(
-          mutation: mutation,
-          snapshot: snapshot,
-          verdict: verdict,
-        );
-    }
+    return switch (mutation.entityType) {
+      EntityType.project => await _resolveProjectConflict(
+        mutation: mutation,
+        snapshot: snapshot,
+        verdict: verdict,
+      ),
+      EntityType.task => await _resolveTaskConflict(
+        mutation: mutation,
+        snapshot: snapshot,
+        verdict: verdict,
+      ),
+    };
   }
 
-  Future<void> _resolveProjectConflict({
+  Future<MutationRecord?> _resolveProjectConflict({
     required MutationRecord mutation,
     required ServerRecordSnapshot snapshot,
     required ConflictResolution verdict,
   }) async {
+    MutationRecord? reArmed;
     await _db.transaction(() async {
       final local = await _db.projectsDao.getProjectById(mutation.entityId);
       final localWins =
@@ -283,32 +349,34 @@ class SyncEngineImpl implements SyncEngine {
         final corrected = base.copyWith(version: snapshot.version + 1);
         await _db.projectsDao.upsertProject(corrected);
         await _queue.removeMutationsForEntity(mutation.entityId);
-        await _queue.enqueueMutation(
-          MutationRecord(
-            mutationId: _idGenerator(),
-            type: corrected.isDeleted ? MutationType.delete : mutation.type,
-            entityType: EntityType.project,
-            entityId: mutation.entityId,
-            payloadJson: jsonEncode(corrected.toJson()),
-            baseUpdatedAt: snapshot.updatedAt,
-            baseVersion: snapshot.version,
-            clientTimestamp: corrected.updatedAt,
-            queuedAt: _nowMillis(),
-          ),
+        final record = MutationRecord(
+          mutationId: _idGenerator(),
+          type: corrected.isDeleted ? MutationType.delete : mutation.type,
+          entityType: EntityType.project,
+          entityId: mutation.entityId,
+          payloadJson: jsonEncode(corrected.toJson()),
+          baseUpdatedAt: snapshot.updatedAt,
+          baseVersion: snapshot.version,
+          clientTimestamp: corrected.updatedAt,
+          queuedAt: _nowMillis(),
         );
+        await _queue.enqueueMutation(record);
+        reArmed = record;
       } else {
         final winner = _parseProject(snapshot.payload);
         await _db.projectsDao.upsertProject(winner);
         await _queue.removeMutationsForEntity(mutation.entityId);
       }
     });
+    return reArmed;
   }
 
-  Future<void> _resolveTaskConflict({
+  Future<MutationRecord?> _resolveTaskConflict({
     required MutationRecord mutation,
     required ServerRecordSnapshot snapshot,
     required ConflictResolution verdict,
   }) async {
+    MutationRecord? reArmed;
     await _db.transaction(() async {
       final local = await _db.tasksDao.getTaskById(mutation.entityId);
       final localWins =
@@ -319,25 +387,26 @@ class SyncEngineImpl implements SyncEngine {
         final corrected = base.copyWith(version: snapshot.version + 1);
         await _db.tasksDao.upsertTask(corrected);
         await _queue.removeMutationsForEntity(mutation.entityId);
-        await _queue.enqueueMutation(
-          MutationRecord(
-            mutationId: _idGenerator(),
-            type: corrected.isDeleted ? MutationType.delete : mutation.type,
-            entityType: EntityType.task,
-            entityId: mutation.entityId,
-            payloadJson: jsonEncode(corrected.toJson()),
-            baseUpdatedAt: snapshot.updatedAt,
-            baseVersion: snapshot.version,
-            clientTimestamp: corrected.updatedAt,
-            queuedAt: _nowMillis(),
-          ),
+        final record = MutationRecord(
+          mutationId: _idGenerator(),
+          type: corrected.isDeleted ? MutationType.delete : mutation.type,
+          entityType: EntityType.task,
+          entityId: mutation.entityId,
+          payloadJson: jsonEncode(corrected.toJson()),
+          baseUpdatedAt: snapshot.updatedAt,
+          baseVersion: snapshot.version,
+          clientTimestamp: corrected.updatedAt,
+          queuedAt: _nowMillis(),
         );
+        await _queue.enqueueMutation(record);
+        reArmed = record;
       } else {
         final winner = _parseTask(snapshot.payload);
         await _db.tasksDao.upsertTask(winner);
         await _queue.removeMutationsForEntity(mutation.entityId);
       }
     });
+    return reArmed;
   }
 
   /// Backoff before the next automatic attempt, or `null` when nothing is
@@ -488,4 +557,18 @@ class SyncEngineImpl implements SyncEngine {
   /// Parses a task wire record with malformed-response mapping.
   Task _parseTask(Map<String, dynamic> json) =>
       _parseOrMalformed(json, Task.fromJson);
+}
+
+/// One push wave: its wire-level outcome plus the corrected mutations
+/// re-armed by local-wins conflict resolutions during the wave.
+class _PushRound {
+  /// Creates a round result.
+  const _PushRound(this.outcome, this.reArmed);
+
+  /// Aggregated outcome of the wave's server results.
+  final SyncOutcome outcome;
+
+  /// Corrected mutations queued during the wave (local winners), ready to
+  /// be delivered in a follow-up wave.
+  final List<MutationRecord> reArmed;
 }

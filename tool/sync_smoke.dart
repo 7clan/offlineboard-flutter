@@ -147,13 +147,6 @@ Future<void> main() async {
     final watchedProject = await db.projectsDao
         .watchProject(project.id, maxAttempts: config.retryPolicy.maxAttempts)
         .first;
-    stdout.writeln('    [debug] watched project: $watchedProject');
-    stdout.writeln(
-      '    [debug] getProjectById: ${await db.projectsDao.getProjectById(project.id)}',
-    );
-    stdout.writeln(
-      '    [debug] raw rows: ${await db.customSelect('SELECT id, name, is_deleted FROM projects').get()}',
-    );
     check(
       'watch stream derives synced status',
       watchedProject?.syncStatus == SyncStatus.synced,
@@ -280,7 +273,11 @@ Future<void> main() async {
     final visibleProjects = await db.projectsDao
         .watchProjects(maxAttempts: config.retryPolicy.maxAttempts)
         .first;
-    check('local list no longer contains the project', visibleProjects.isEmpty);
+    check(
+      'local list no longer contains the project',
+      visibleProjects.every((visible) => visible.id != project.id),
+    );
+    check('seeded projects remain visible', visibleProjects.length == 2);
 
     stdout.writeln('All $_checks checks passed.');
   } finally {
